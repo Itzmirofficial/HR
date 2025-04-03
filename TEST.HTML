@@ -1,3 +1,12 @@
+None selected 
+
+Skip to content
+Using Gmail with screen readers
+Conversations
+13.28 GB of 15 GB (88%) used
+Terms · Privacy · Programme Policies
+Last account activity: 3 minutes ago
+Open in 1 other location · Details
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -156,6 +165,16 @@
             margin-bottom: 0;
         }
 
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            margin-top: 15px;
+        }
+
+        .checkbox-group input[type="checkbox"] {
+            margin-right: 8px;
+        }
+
         .btn-container {
             display: flex;
             gap: 10px;
@@ -228,6 +247,34 @@
 
         tr:hover {
             background-color: #f9f9f9;
+        }
+
+        /* Inactive machine styling */
+        tr.inactive {
+            background-color: #f8f9fa;
+        }
+
+        tr.inactive td {
+            color: #7f8c8d;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+            text-align: center;
+        }
+
+        .status-active {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .status-inactive {
+            background-color: #f8d7da;
+            color: #721c24;
         }
 
         .table-actions {
@@ -433,6 +480,10 @@
                             <div id="ip-address-error" class="error-message">Please enter a valid IP Address</div>
                         </div>
                     </div>
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="is-active" checked>
+                        <label for="is-active">Active Machine</label>
+                    </div>
                     <div class="btn-container">
                         <button class="btn btn-secondary" id="btn-refresh">Refresh</button>
                         <button class="btn btn-success" id="btn-add">Add Machine</button>
@@ -450,8 +501,9 @@
                         <thead>
                             <tr>
                                 <th width="5%">#</th>
-                                <th width="35%">Machine ID</th>
-                                <th width="35%">IP Address</th>
+                                <th width="25%">Machine ID</th>
+                                <th width="25%">IP Address</th>
+                                <th width="20%">Status</th>
                                 <th width="25%">Actions</th>
                             </tr>
                         </thead>
@@ -484,6 +536,10 @@
                     <input type="text" id="edit-ip-address" class="form-control" placeholder="Enter IP Address">
                     <div id="edit-ip-address-error" class="error-message">Please enter a valid IP Address</div>
                 </div>
+                <div class="checkbox-group">
+                    <input type="checkbox" id="edit-is-active">
+                    <label for="edit-is-active">Active Machine</label>
+                </div>
             </div>
             <div class="modal-footer">
                 <button class="btn btn-secondary" onclick="closeModal('editModal')">Cancel</button>
@@ -513,10 +569,10 @@
     <script>
         // Sample data for initial table population
         let machines = [
-            { id: 1, machineId: "ATTMACH001", ipAddress: "192.168.1.100" },
-            { id: 2, machineId: "ATTMACH002", ipAddress: "192.168.1.101" },
-            { id: 3, machineId: "ATTMACH003", ipAddress: "192.168.1.102" },
-            { id: 4, machineId: "ATTMACH004", ipAddress: "192.168.1.103" }
+            { id: 1, machineId: "ATTMACH001", ipAddress: "192.168.1.100", isActive: true },
+            { id: 2, machineId: "ATTMACH002", ipAddress: "192.168.1.101", isActive: true },
+            { id: 3, machineId: "ATTMACH003", ipAddress: "192.168.1.102", isActive: false },
+            { id: 4, machineId: "ATTMACH004", ipAddress: "192.168.1.103", isActive: true }
         ];
 
         // Function to open the sidebar
@@ -589,10 +645,18 @@
             // Add each machine to the table
             machines.forEach((machine, index) => {
                 const row = document.createElement('tr');
+                if (!machine.isActive) {
+                    row.classList.add('inactive');
+                }
+                
+                const statusClass = machine.isActive ? 'status-active' : 'status-inactive';
+                const statusText = machine.isActive ? 'Active' : 'Inactive';
+                
                 row.innerHTML = `
                     <td>${index + 1}</td>
                     <td>${machine.machineId}</td>
                     <td>${machine.ipAddress}</td>
+                    <td><span class="status-badge ${statusClass}">${statusText}</span></td>
                     <td class="table-actions">
                         <button class="action-btn edit" onclick="editMachine(${machine.id})">Update</button>
                         <button class="action-btn delete" onclick="deleteMachine(${machine.id})">Delete</button>
@@ -606,9 +670,11 @@
         function addMachine() {
             const machineIdInput = document.getElementById('machine-id');
             const ipAddressInput = document.getElementById('ip-address');
+            const isActiveInput = document.getElementById('is-active');
             
             const machineId = machineIdInput.value.trim();
             const ipAddress = ipAddressInput.value.trim();
+            const isActive = isActiveInput.checked;
             
             let hasErrors = false;
             
@@ -657,7 +723,8 @@
             machines.push({
                 id: newId,
                 machineId: machineId,
-                ipAddress: ipAddress
+                ipAddress: ipAddress,
+                isActive: isActive
             });
             
             // Show success message
@@ -666,6 +733,7 @@
             // Clear form
             machineIdInput.value = '';
             ipAddressInput.value = '';
+            isActiveInput.checked = true;
             
             // Reset error messages
             document.getElementById('machine-id-error').textContent = "Please enter a valid Machine ID";
@@ -682,7 +750,7 @@
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ machineId, ipAddress }),
+                body: JSON.stringify({ machineId, ipAddress, isActive }),
             })
             .then(response => response.json())
             .then(data => {
@@ -707,6 +775,7 @@
             document.getElementById('edit-row-id').value = machine.id;
             document.getElementById('edit-machine-id').value = machine.machineId;
             document.getElementById('edit-ip-address').value = machine.ipAddress;
+            document.getElementById('edit-is-active').checked = machine.isActive;
             
             // Show modal
             document.getElementById('editModal').style.display = 'block';
@@ -717,9 +786,11 @@
             const id = parseInt(document.getElementById('edit-row-id').value);
             const machineIdInput = document.getElementById('edit-machine-id');
             const ipAddressInput = document.getElementById('edit-ip-address');
+            const isActiveInput = document.getElementById('edit-is-active');
             
             const machineId = machineIdInput.value.trim();
             const ipAddress = ipAddressInput.value.trim();
+            const isActive = isActiveInput.checked;
             
             let hasErrors = false;
             
@@ -763,6 +834,7 @@
             if (machineIndex !== -1) {
                 machines[machineIndex].machineId = machineId;
                 machines[machineIndex].ipAddress = ipAddress;
+                machines[machineIndex].isActive = isActive;
                 
                 // Show success message
                 showAlert('success');
@@ -774,7 +846,7 @@
                 renderMachinesTable();
                 
                 // In a real app, we'd send an update to the server
-                // Example SQL query: UPDATE Machines SET MachineID = ?, IPAddress = ? WHERE ID = ?
+                // Example SQL query: UPDATE Machines SET MachineID = ?, IPAddress = ?, IsActive = ? WHERE ID = ?
             }
         }
 
